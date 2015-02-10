@@ -146,8 +146,8 @@ class Parameters(object):
         """
         if not isinstance(connection_attempts, int):
             raise TypeError('connection_attempts must be an int')
-        if connection_attempts < 1:
-            raise ValueError('connection_attempts must be None or > 0')
+        if connection_attempts < 0:
+            raise ValueError('connection_attempts must be None or >= 0. 0 is unlimited retry attempts.')
         return True
 
     def _validate_credentials(self, credentials):
@@ -705,16 +705,22 @@ class Connection(object):
     def connect(self):
         """Invoke if trying to reconnect to a RabbitMQ server. Constructing the
         Connection object should connect on its own.
+        
+        self.params.connection_attempts == 0 allows for PIKA to perform unlimited
+        connection retry attempts.
 
         """
         self._set_connection_state(self.CONNECTION_INIT)
         error = self._adapter_connect()
         if not error:
             return self._on_connected()
-        self.remaining_connection_attempts -= 1
-        LOGGER.warning('Could not connect, %i attempts left',
+        if self.params.connection_attempts != 0:
+            self.remaining_connection_attempts -= 1
+            LOGGER.warning('Could not connect, %i attempts left',
                        self.remaining_connection_attempts)
-        if self.remaining_connection_attempts:
+        else:
+            LOGGER.warning('Could not connect, unlimited attempts left'))
+        if self.remaining_connection_attempts or self.params.connection_attempts == 0:
             LOGGER.info('Retrying in %i seconds', self.params.retry_delay)
             self.add_timeout(self.params.retry_delay, self.connect)
         else:
