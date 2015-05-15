@@ -719,7 +719,7 @@ class Connection(object):
             LOGGER.warning('Could not connect, %i attempts left',
                        self.remaining_connection_attempts)
         else:
-            LOGGER.warning('Could not connect, unlimited attempts left'))
+            LOGGER.warning('Could not connect, unlimited attempts left')
         if self.remaining_connection_attempts or self.params.connection_attempts == 0:
             LOGGER.info('Retrying in %i seconds', self.params.retry_delay)
             self.add_timeout(self.params.retry_delay, self.connect)
